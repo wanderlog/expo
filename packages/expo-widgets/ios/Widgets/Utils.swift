@@ -93,13 +93,6 @@ func getLiveActivityNodes(forName name: String, props: String? = nil, environmen
   }
 }
 
-func getLiveActivityUrl(forName name: String) -> URL? {
-  guard let urlString = WidgetsStorage.getString(forKey: "__expo_widgets_live_activity_\(name)_url") else {
-    return nil
-  }
-  return URL(string: urlString)
-}
-
 public func getWidgetEnvironment(environment: EnvironmentValues) -> [String: Any] {
   var env: [String: Any] = [
     "showsContainerBackground": environment.showsWidgetContainerBackground,
@@ -126,16 +119,19 @@ public func getWidgetEnvironment(environment: EnvironmentValues) -> [String: Any
   return env
 }
 
-func getLiveActivityEnvironment(environment: EnvironmentValues) -> [String: Any] {
+// ActivityViewContext requires iOS 16.1. Without the availability attribute, precompiling
+// this package fails: the SwiftPM prebuild targets iOS 16.0 (spm.config.json), unlike the
+// podspec (16.4). Both callers live in @available(iOS 16.1, *) views.
+@available(iOS 16.1, *)
+func getLiveActivityEnvironment(for environment: EnvironmentValues, in context: ActivityViewContext<LiveActivityAttributes>) -> [String: Any] {
   var env: [String: Any] = [
     "colorScheme": "\(environment.colorScheme)"
   ]
 
-  if #available(iOS 16.0, *) {
-    env["isLuminanceReduced"] = environment.isLuminanceReduced
-  }
-  if #available(iOS 16.1, *) {
-    env["isActivityFullscreen"] = environment.isActivityFullscreen
+  env["isLuminanceReduced"] = environment.isLuminanceReduced
+  env["isActivityFullscreen"] = environment.isActivityFullscreen
+  if #available(iOS 16.2, *) {
+    env["isStale"] = context.isStale
   }
   if #available(iOS 18.0, *) {
     env["isActivityUpdateReduced"] = environment.isActivityUpdateReduced

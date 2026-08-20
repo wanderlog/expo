@@ -81,7 +81,7 @@ export type DefaultNavigatorOptions<
   screenOptions?:
     | ScreenOptions
     | ((props: {
-        route: RouteProp<ParamList>;
+        route: DescriptorRouteProp<ParamList>;
         navigation: Navigation;
         theme: ReactNavigation.Theme;
       }) => ScreenOptions);
@@ -278,39 +278,6 @@ type NavigationHelpersCommon<
   ): void;
 
   /**
-   * Navigate to a route in current navigation tree.
-   *
-   * @deprecated Use `navigate` instead.
-   *
-   * @param screen Name of the route to navigate to.
-   * @param [params] Params object for the route.
-   */
-  navigateDeprecated<RouteName extends keyof ParamList>(
-    ...args: RouteName extends unknown
-      ? undefined extends ParamList[RouteName]
-        ? [screen: RouteName, params?: ParamList[RouteName]]
-        : [screen: RouteName, params: ParamList[RouteName]]
-      : never
-  ): void;
-
-  /**
-   * Navigate to a route in current navigation tree.
-   *
-   * @deprecated Use `navigate` instead.
-   *
-   * @param options Object with `name` for the route to navigate to, and a `params` object.
-   */
-  navigateDeprecated<RouteName extends keyof ParamList>(
-    options: RouteName extends unknown
-      ? {
-          name: RouteName;
-          params: ParamList[RouteName];
-          merge?: boolean;
-        }
-      : never
-  ): void;
-
-  /**
    * Preloads the route in current navigation tree.
    *
    * @param screen Name of the route to preload.
@@ -423,16 +390,6 @@ export type NavigationContainerProps = {
    */
   onUnhandledAction?: (action: Readonly<NavigationAction>) => void;
   /**
-   * Whether child navigator should handle a navigation action.
-   * The child navigator needs to be mounted before it can handle the action.
-   * Defaults to `false`.
-   *
-   * This will be removed in the next major release.
-   *
-   * @deprecated Use nested navigation API instead
-   */
-  navigationInChildEnabled?: boolean;
-  /**
    * Theme object for the UI elements.
    */
   theme?: ReactNavigation.Theme;
@@ -477,6 +434,11 @@ export type RouteProp<
   ParamList extends ParamListBase,
   RouteName extends keyof ParamList = Keyof<ParamList>,
 > = Route<Extract<RouteName, string>, ParamList[RouteName]>;
+
+export type DescriptorRouteProp<
+  ParamList extends ParamListBase,
+  RouteName extends keyof ParamList = Keyof<ParamList>,
+> = DescriptorRoute<RouteProp<ParamList, RouteName>>;
 
 export type CompositeNavigationProp<
   A extends NavigationProp<ParamListBase, string, any, any, any>,
@@ -549,6 +511,14 @@ export type ScreenLayoutArgs<
  */
 export type RouteSource = 'layout' | 'filesystem';
 
+/**
+ * Route carried by a descriptor. `key` is `undefined` when the descriptor
+ * describes a route name declared in a layout that has no live route
+ * instance in navigation state.
+ */
+export type DescriptorRoute<Route extends RouteProp<any, any>> = Omit<Route, 'key'> &
+  Readonly<{ key: string | undefined }>;
+
 export type Descriptor<
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   ScreenOptions extends {},
@@ -568,7 +538,7 @@ export type Descriptor<
   /**
    * Route object for the screen
    */
-  route: Route;
+  route: DescriptorRoute<Route>;
 
   /**
    * Navigation object for the screen
@@ -653,7 +623,7 @@ export type RouteConfigProps<
   options?:
     | ScreenOptions
     | ((props: {
-        route: RouteProp<ParamList, RouteName>;
+        route: DescriptorRouteProp<ParamList, RouteName>;
         navigation: Navigation;
         theme: ReactNavigation.Theme;
       }) => ScreenOptions);
@@ -686,11 +656,6 @@ export type RouteConfigProps<
   getId?: ({ params }: { params: Readonly<ParamList[RouteName]> }) => string | undefined;
 
   /**
-   * Initial params object for the route.
-   */
-  initialParams?: Partial<ParamList[RouteName]>;
-
-  /**
    * Whether this screen was declared in the layout (`<Screen>`/`<NativeTabs.Trigger>`)
    * or inferred from the filesystem.
    */
@@ -720,7 +685,7 @@ export type RouteGroupConfig<
   screenOptions?:
     | ScreenOptions
     | ((props: {
-        route: RouteProp<ParamList, keyof ParamList>;
+        route: DescriptorRouteProp<ParamList, keyof ParamList>;
         navigation: Navigation;
         theme: ReactNavigation.Theme;
       }) => ScreenOptions);
@@ -1026,10 +991,6 @@ export type PathConfig<ParamList extends {}> = Partial<PathConfigAlias> & {
    * ```
    */
   stringify?: Record<string, (value: any) => string>;
-  /**
-   * Additional path alias that will be matched to the same screen.
-   */
-  alias?: (string | PathConfigAlias)[];
   /**
    * Path configuration for child screens.
    */
